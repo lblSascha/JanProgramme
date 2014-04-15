@@ -16,5 +16,11 @@ public class GeneratorController implements ActionListener {
 		if (e.getActionCommand().equals("Speichern")) {
 			PictureGen_GUI.saveCanvas(picGen);
 		}
+		
+		if (e.getActionCommand().equals("Fertig")) {
+			picGen.setBlub(picGen.getTextField().getText());
+			picGen.repaint();
+			picGen.getTextField().setText("");
+		}
 	}
 }

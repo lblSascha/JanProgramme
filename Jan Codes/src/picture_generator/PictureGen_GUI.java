@@ -8,6 +8,7 @@ import java.awt.FlowLayout;
 import java.awt.Font;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
+import java.awt.RenderingHints;
 import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
@@ -15,8 +16,6 @@ import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.awt.image.BufferedImage;
 import java.io.File;
-import java.util.Observable;
-import java.util.Observer;
 
 import javax.imageio.ImageIO;
 import javax.swing.BorderFactory;
@@ -26,12 +25,17 @@ import javax.swing.JFrame;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JSeparator;
-import javax.swing.JTextField;
+import javax.swing.JTextArea;
 import javax.swing.SwingConstants;
 import javax.swing.UIManager;
 import javax.swing.UnsupportedLookAndFeelException;
+import javax.swing.text.AbstractDocument;
+import javax.swing.text.AttributeSet;
+import javax.swing.text.BadLocationException;
+import javax.swing.text.DocumentFilter;
 
-public class PictureGen_GUI extends Canvas implements Observer {
+
+public class PictureGen_GUI extends Canvas {
 
 	/**
 	 * 
@@ -42,24 +46,39 @@ public class PictureGen_GUI extends Canvas implements Observer {
 
 	private JPanel topPanel;
 
-	private JPanel utilityPanel;
-
 	private JPanel separator;
 
-	private JTextField textField;
+	private JTextArea textField;
 
 	private JPanel buttonPanel;
 
 	private JPanel buttons;
 
 	public JButton saveButton;
+	
+	public JButton readyButton;
 
 	private String blub;
 
+	public void setBlub(String blub) {
+		this.blub = blub;
+	}
+
+	public JTextArea getTextField() {
+		return textField;
+	}
+
+	public String getBlub() {
+		return blub;
+	}
+
 	public PictureGen_GUI() {
-		generatorView = new JFrame("Not a Virus");
+		blub = "Kein Text eingegeben";
+
+		generatorView = new JFrame("Picture Generator");
 		generatorView.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-		generatorView.setMinimumSize(new Dimension(400, 400));
+		generatorView.setMinimumSize(new Dimension(416, 495));
+		generatorView.setResizable(false);
 		generatorView.setLocationRelativeTo(null);
 		generatorView.setVisible(true);
 
@@ -72,14 +91,6 @@ public class PictureGen_GUI extends Canvas implements Observer {
 		generatorView.pack();
 	}
 
-	public JTextField getTextField() {
-		return textField;
-	}
-
-	public JPanel getutilityPanel() {
-		return utilityPanel;
-	}
-
 	private void createButtons() {
 		buttonPanel = new JPanel(new BorderLayout());
 		buttons = new JPanel(new FlowLayout());
@@ -88,8 +99,13 @@ public class PictureGen_GUI extends Canvas implements Observer {
 		separator = new JPanel(new BorderLayout());
 
 		saveButton = new JButton("Speichern");
+		readyButton = new JButton("Fertig");
 
-		textField = new JTextField("Gewünschten Text eingeben");
+		textField = new JTextArea("Gewünschten Text eingeben",0,0);
+		 textField.getDocument().putProperty("filterNewlines",
+	                Boolean.TRUE);
+		textField.setSelectionEnd(10);
+		
 		topPanel.add(textField);
 		topPanel.setBorder(BorderFactory.createEmptyBorder(0, // top
 				0, // left
@@ -100,10 +116,12 @@ public class PictureGen_GUI extends Canvas implements Observer {
 		buttonPanel.add(new JSeparator(SwingConstants.HORIZONTAL),
 				BorderLayout.NORTH);
 		buttonPanel.add(buttons, BorderLayout.SOUTH);
+		buttons.add(readyButton);
 		buttons.add(saveButton);
 
 		// On click removes text
 		textField.addMouseListener(new MouseListener() {
+
 			private int clicks = 0;
 
 			@Override
@@ -136,46 +154,53 @@ public class PictureGen_GUI extends Canvas implements Observer {
 		});
 
 		textField.addKeyListener(new KeyListener() {
-			
+
 			@Override
 			public void keyTyped(KeyEvent e) {
 				int key = e.getKeyCode();
-				
+
 				if (key == KeyEvent.VK_ENTER) {
-					blub = textField.getText();
-					repaint();
+					blub = blub + "\n";
+					
 				}
 			}
-			
+
 			@Override
-			public void keyReleased(KeyEvent e) {
-				
+			public void keyReleased(KeyEvent arg0) {
+
 			}
-			
+
 			@Override
 			public void keyPressed(KeyEvent e) {
-				int key = e.getKeyCode();
-				
-				if(key == KeyEvent.VK_ENTER) {
-					blub = textField.getText();
-				}
+
 			}
 		});
+		
+		DocumentFilter filter = new UppercaseDocumentFilter();
+		((AbstractDocument) textField.getDocument()).setDocumentFilter(filter);
+
 	}
 
 	public void addActionController(ActionListener controller) {
 		saveButton.addActionListener(controller);
+		readyButton.addActionListener(controller);
 	}
 
 	@Override
 	public void paint(Graphics g) {
 		Graphics2D g2 = (Graphics2D) g;
+
+		RenderingHints rh = new RenderingHints(
+	            RenderingHints.KEY_TEXT_ANTIALIASING,
+	            RenderingHints.VALUE_TEXT_ANTIALIAS_GASP);
+	    g2.setRenderingHints(rh);
+		
 		g2.setBackground(Color.decode("#dc072f"));
 		g2.clearRect(0, 0, this.getWidth(), this.getHeight());
-		Font font = new Font("Arial", Font.BOLD, 12);
-		g.setFont(font);
-		blub = "Kein Text eingegeben";
-		g2.setColor(Color.BLACK);
+		Font font = new Font("Arial", Font.BOLD, 35);
+		g2.setFont(font);
+
+		g2.setColor(Color.WHITE);
 
 		int stringLen = (int) g2.getFontMetrics().getStringBounds(blub, g2)
 				.getWidth();
@@ -185,17 +210,13 @@ public class PictureGen_GUI extends Canvas implements Observer {
 		g2.drawString(blub, start, getHeight() / 2);
 	}
 
-	public void update(Observable arg0, Object arg1) {
-
-	}
-
 	public static void saveCanvas(Canvas canvas) {
 
 		JFileChooser chooser = new JFileChooser();
 		// Dialog zum Speichern von Dateien anzeigen
 		chooser.setSelectedFile(new File(".png")); // TODO erstes wort, als name
 		int retrival = chooser.showSaveDialog(null);
-		
+
 		if (retrival == JFileChooser.APPROVE_OPTION) {
 
 			BufferedImage image = new BufferedImage(canvas.getWidth(),
@@ -205,10 +226,14 @@ public class PictureGen_GUI extends Canvas implements Observer {
 
 			canvas.paint(g2);
 			try {
-				ImageIO.write(image, "png", new File(chooser.getSelectedFile() + ""));
+				ImageIO.write(image, "png", new File(chooser.getSelectedFile()
+						+ ""));
 			} catch (Exception e) {
-				JOptionPane.showMessageDialog(null, "Es ist ein Fehler aufgetreten beim Speichern. Ein Neuversuch sollte das Problem lösen :)", "Warnung",
-				        JOptionPane.WARNING_MESSAGE);
+				JOptionPane
+						.showMessageDialog(
+								null,
+								"Es ist ein Fehler aufgetreten beim Speichern. Ein Neuversuch sollte das Problem lösen :)",
+								"Warnung", JOptionPane.WARNING_MESSAGE);
 			}
 		}
 	}
@@ -227,6 +252,41 @@ public class PictureGen_GUI extends Canvas implements Observer {
 			System.err.println("Instantiation Exception!");
 		} catch (IllegalAccessException e) {
 			System.err.println("Illegal Acces Exception!");
+		}
+	}
+	
+	class DocFilter extends DocumentFilter{
+
+        public void insertString(FilterBypass fb, int offset, String string, AttributeSet attr) throws BadLocationException {
+            fb.insertString(offset, string.replaceAll("\\n", ""), attr); 
+        }
+
+       public void replace(FilterBypass fb, int offset, int length, String string, AttributeSet attr) throws BadLocationException {
+            fb.insertString(offset, string.replaceAll("\\n", ""), attr); 
+        }
+    }
+
+	class UppercaseDocumentFilter extends DocumentFilter {
+		//
+		// Override insertString method of DocumentFilter to make the text
+		// format
+		// to uppercase.
+		//
+		public void insertString(DocumentFilter.FilterBypass fb, int offset,
+				String text, AttributeSet attr) throws BadLocationException {
+
+			fb.insertString(offset, text.toUpperCase(), attr);
+		}
+
+		//
+		// Override replace method of DocumentFilter to make the text format
+		// to uppercase.
+		//
+		public void replace(DocumentFilter.FilterBypass fb, int offset,
+				int length, String text, AttributeSet attrs)
+				throws BadLocationException {
+
+			fb.replace(offset, length, text.toUpperCase(), attrs);
 		}
 	}
 }
